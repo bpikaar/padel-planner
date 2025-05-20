@@ -1,4 +1,4 @@
-import PadelPlanner from "./padel-planner";
+import PadelPlanner from "./PadelPlanner";
 
 
 function App() {
