@@ -101,7 +101,7 @@ const PadelPlanner = () => {
   };
 
   const getAvailableFriends = (week) => {
-    return friends.filter(friend => availability[week]?.[friend]);
+    return friends.filter(friend => availability[week]?.[friend] === 2);
   };
 
   // Handle availability updates from CalendarView
@@ -138,36 +138,47 @@ const PadelPlanner = () => {
   };
 
   const createTeamsForWeek = (week) => {
-    const available = getAvailableFriends(week);
-    if (available.length < 4) {
-      alert(`Niet genoeg spelers beschikbaar (${available.length}/4)`);
+    // Get all fully available players for this week
+    const availablePlayers = getAvailableFriends(week);
+
+    if (availablePlayers.length < 4) {
+      alert('Er zijn niet genoeg beschikbare spelers voor deze week');
       return;
     }
-    if (available.length > 4) {
-      // Fair distribution algorithm
-      const playCounts = available.map(friend => ({
-        friend,
-        count: getPlayCount(friend)
-      }));
 
-      // Sort by play count (ascending) and then randomly
-      playCounts.sort((a, b) => {
-        if (a.count !== b.count) return a.count - b.count;
-        return Math.random() - 0.5;
+    // Create teams by selecting players with the least matches
+    const playerCounts = {};
+    friends.forEach(friend => {
+      playerCounts[friend] = 0;
+    });
+
+    // Count existing matches for each player
+    Object.values(matches).forEach(match => {
+      [...match.team1, ...match.team2].forEach(player => {
+        if (player && playerCounts[player] !== undefined) {
+          playerCounts[player]++;
+        }
       });
+    });
 
-      available.length = 4;
-      available.splice(0, 4, ...playCounts.slice(0, 4).map(item => item.friend));
-    }
+    // Sort available players by match count (ascending)
+    const sortedPlayers = [...availablePlayers].sort((a, b) => {
+      return playerCounts[a] - playerCounts[b];
+    });
 
-    // Create balanced teams
-    const shuffled = shuffleArray(available);
-    const team1 = [shuffled[0], shuffled[1]];
-    const team2 = [shuffled[2], shuffled[3]];
+    // Take first 4 players with least matches
+    const selectedPlayers = sortedPlayers.slice(0, 4);
 
+    // Create two teams of 2 players each
+    const newMatch = {
+      team1: [selectedPlayers[0], selectedPlayers[2]],
+      team2: [selectedPlayers[1], selectedPlayers[3]]
+    };
+
+    // Update matches
     setMatches(prev => ({
       ...prev,
-      [week]: { team1, team2 }
+      [week]: newMatch
     }));
 
     // Clear any existing result for this week

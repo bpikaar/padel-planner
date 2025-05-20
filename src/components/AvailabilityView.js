@@ -41,7 +41,7 @@ function AvailabilityView({
 
         // Cleanup listener when component unmounts
         return () => off(availabilityRef);
-    }, []); // Empty dependency array means this runs once on mount
+    }, []);
 
     // Write availability to Firebase whenever it changes
     useEffect(() => {
@@ -55,25 +55,67 @@ function AvailabilityView({
                     localStorage.setItem('padelAvailability', JSON.stringify(availability));
                 });
         }
-    }, [availability, loading]); // This effect runs whenever availability changes
+    }, [availability, loading]);
 
-    // Move toggleAvailability function to this component
-    const toggleAvailability = (week, friend) => {
+    // Cycle through availability states (unavailable -> maybe -> available -> unavailable)
+    const cycleAvailability = (week, friend) => {
+        // Get current status or default to 0 (unavailable)
+        const currentStatus = availability[week]?.[friend] || 0;
+
+        // Simple cycle through states: 0 -> 1 -> 2 -> 0
+        const nextStatus = (currentStatus + 1) % 3;
+
         const newAvailability = {
             ...availability,
             [week]: {
                 ...availability[week],
-                [friend]: !availability[week]?.[friend]
+                [friend]: nextStatus
             }
         };
 
         setAvailability(newAvailability);
-        // No need to call onAvailabilityChange here as the effect will handle it
     };
 
     // Get available friends for a week (helper function)
     const getAvailableFriends = (week) => {
-        return friends.filter(friend => availability[week]?.[friend]);
+        return friends.filter(friend => availability[week]?.[friend] === 2);
+    };
+
+    // Render the cell with appropriate styling for each availability state
+    const renderAvailabilityCell = (week, friend) => {
+        const status = availability[week]?.[friend] || 0;
+
+        // Configure styles and content based on status
+        let cellClass, cellText, cellColor;
+
+        switch (status) {
+            case 1: // Maybe
+                cellClass = "bg-yellow-400 text-white";
+                cellText = "?";
+                cellColor = "yellow";
+                break;
+            case 2: // Available
+                cellClass = "bg-green-500 text-white";
+                cellText = "✓";
+                cellColor = "green";
+                break;
+            default: // Unavailable (0)
+                cellClass = "bg-red-500 text-white";
+                cellText = "✕";
+                cellColor = "red";
+                break;
+        }
+
+        return (
+            <button
+                onClick={() => cycleAvailability(week, friend)}
+                className={`w-6 h-6 rounded-full ${cellClass}`}
+                aria-label={`Set availability for ${friend} on week ${week}`}
+                data-color={cellColor}
+            >
+                {cellText}
+            </button>
+        );
     };
 
     return (
@@ -89,46 +131,57 @@ function AvailabilityView({
                     <p className="mt-2">Loading availability data...</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white rounded-lg shadow">
-                        <thead>
-                            <tr className="bg-blue-100">
-                                <th className="py-2 px-4 text-left">Speler</th>
-                                {[...Array(totalWeeks)].map((_, i) => (
-                                    <th key={i} className="py-2 px-4 text-center whitespace-nowrap">
-                                        <div>Week {i + 1}</div>
-                                        <div className="text-xs text-gray-500">{getWeekDate(i + 1)}</div>
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {friends.map((friend) => (
-                                <tr key={friend} className="border-t">
-                                    <td className="py-2 px-4 font-medium">{friend}</td>
-                                    {[...Array(totalWeeks)].map((_, i) => {
-                                        const weekNum = i + 1;
-                                        const isAvailable = availability[weekNum]?.[friend];
+                <>
+                    <div className="flex gap-3 mb-4 justify-center">
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+                            <span className="text-sm">Afwezig</span>
+                        </div>
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 rounded-full bg-yellow-400 mr-2"></div>
+                            <span className="text-sm">Misschien</span>
+                        </div>
+                        <div className="flex items-center">
+                            <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                            <span className="text-sm">Beschikbaar</span>
+                        </div>
+                    </div>
 
-                                        return (
-                                            <td key={i} className="py-2 px-4 text-center">
-                                                <button
-                                                    onClick={() => toggleAvailability(weekNum, friend)}
-                                                    className={`w-6 h-6 rounded-full ${isAvailable
-                                                        ? 'bg-green-500 text-white'
-                                                        : 'bg-gray-200'
-                                                        }`}
-                                                >
-                                                    {isAvailable ? '✓' : ''}
-                                                </button>
-                                            </td>
-                                        );
-                                    })}
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full bg-white rounded-lg shadow">
+                            <thead>
+                                <tr className="bg-blue-100">
+                                    <th className="py-2 px-4 text-left">Speler</th>
+                                    {[...Array(totalWeeks)].map((_, i) => (
+                                        <th key={i} className="py-2 px-4 text-center whitespace-nowrap">
+                                            <div>Week {i + 1}</div>
+                                            <div className="text-xs text-gray-500">{getWeekDate(i + 1)}</div>
+                                        </th>
+                                    ))}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {friends.map((friend) => (
+                                    <tr key={friend} className="border-t">
+                                        <td className="py-2 px-4 font-medium">{friend}</td>
+                                        {[...Array(totalWeeks)].map((_, i) => {
+                                            const weekNum = i + 1;
+                                            return (
+                                                <td key={i} className="py-2 px-4 text-center">
+                                                    {renderAvailabilityCell(weekNum, friend)}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p className="mt-4 text-sm text-gray-500 text-center">
+                        Klik om beschikbaarheid te veranderen (afwezig → misschien → beschikbaar)
+                    </p>
+                </>
             )}
         </div>
     );
