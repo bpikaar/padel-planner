@@ -120,7 +120,7 @@ function AvailabilityView({
 
     return (
         <div className="mt-4">
-            <div className="flex items-center mb-4 text-blue-800">
+            <div className="flex items-center mb-4 text-[rgb(120,151,178)">
                 <CalendarIcon size={24} className="mr-2" />
                 <h2 className="text-xl font-bold">Beschikbaarheid</h2>
             </div>
@@ -150,7 +150,7 @@ function AvailabilityView({
                     <div className="overflow-x-auto">
                         <table className="min-w-full bg-white rounded-lg shadow">
                             <thead>
-                                <tr className="bg-blue-100">
+                                <tr className="bg-[rgb(120,151,178)] bg-opacity-20">
                                     <th className="py-2 px-4 text-left">Speler</th>
                                     {[...Array(totalWeeks)].map((_, i) => (
                                         <th key={i} className="py-2 px-4 text-center whitespace-nowrap">

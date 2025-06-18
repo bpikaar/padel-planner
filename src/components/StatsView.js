@@ -10,7 +10,7 @@ const StatsView = ({ friends, matches, results, getPlayCount, getWinCount }) => 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Play count stats */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center mb-4 text-blue-800">
+          <div className="flex items-center mb-4 text-[rgb(120,151,178)">
             <BarChart3 size={20} className="mr-2" />
             <h2 className="text-lg font-bold">Aantal gespeeld</h2>
           </div>
@@ -28,7 +28,7 @@ const StatsView = ({ friends, matches, results, getPlayCount, getWinCount }) => 
 
         {/* Win count stats */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <div className="flex items-center mb-4 text-blue-800">
+          <div className="flex items-center mb-4 text-[rgb(120,151,178)">
             <Trophy size={20} className="mr-2" />
             <h2 className="text-lg font-bold">Aantal gewonnen</h2>
           </div>
@@ -39,8 +39,8 @@ const StatsView = ({ friends, matches, results, getPlayCount, getWinCount }) => 
                 <div className="flex items-center">
                   <span className="font-medium">{getWinCount(friend)}</span>
                   <span className="text-gray-500 text-sm ml-2">
-                    ({getPlayCount(friend) > 0 
-                      ? Math.round((getWinCount(friend) / getPlayCount(friend)) * 100) 
+                    ({getPlayCount(friend) > 0
+                      ? Math.round((getWinCount(friend) / getPlayCount(friend)) * 100)
                       : 0}%)
                   </span>
                 </div>

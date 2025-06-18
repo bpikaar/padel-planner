@@ -20,7 +20,7 @@ const HistoryView = ({
   if (completedMatches.length === 0) {
     return (
       <div className="mt-4">
-        <div className="flex items-center mb-4 text-blue-800">
+        <div className="flex items-center mb-4 text-[rgb(120,151,178)">
           <Clock size={24} className="mr-2" />
           <h2 className="text-xl font-bold">Geschiedenis</h2>
         </div>
@@ -33,7 +33,7 @@ const HistoryView = ({
 
   return (
     <div className="mt-4">
-      <div className="flex items-center mb-4 text-blue-800">
+      <div className="flex items-center mb-4 text-[rgb(120,151,178)">
         <Clock size={24} className="mr-2" />
         <h2 className="text-xl font-bold">Geschiedenis</h2>
       </div>
@@ -48,8 +48,8 @@ const HistoryView = ({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Team 1 */}
-              <div className="bg-blue-50 p-3 rounded-md">
-                <div className="font-medium text-blue-800 mb-1">Team 1</div>
+              <div className="bg-[rgb(120,151,178)] bg-opacity-10 p-3 rounded-md">
+                <div className="font-medium text-[rgb(120,151,178) mb-1">Team 1</div>
                 <ul>
                   {match.teams.team1?.map((player, idx) => (
                     <li key={idx}>{player}</li>
@@ -67,15 +67,15 @@ const HistoryView = ({
                     {match.result.team1Score > match.result.team2Score
                       ? "Team 1 wint"
                       : match.result.team2Score > match.result.team1Score
-                      ? "Team 2 wint"
-                      : "Gelijkspel"}
+                        ? "Team 2 wint"
+                        : "Gelijkspel"}
                   </div>
                 </div>
               </div>
 
               {/* Team 2 */}
-              <div className="bg-blue-50 p-3 rounded-md">
-                <div className="font-medium text-blue-800 mb-1">Team 2</div>
+              <div className="bg-[rgb(120,151,178)] bg-opacity-10 p-3 rounded-md">
+                <div className="font-medium text-[rgb(120,151,178) mb-1">Team 2</div>
                 <ul>
                   {match.teams.team2?.map((player, idx) => (
                     <li key={idx}>{player}</li>

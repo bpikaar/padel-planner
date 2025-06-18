@@ -330,8 +330,8 @@ const PadelPlanner = () => {
 
   // Render functions
   const renderTeam = (team, teamName, week, teamId) => (
-    <div className="p-3 bg-blue-50 rounded-lg">
-      <div className="font-semibold text-blue-800 mb-2">{teamName}</div>
+    <div className="p-3 bg-[rgb(120,151,178)] bg-opacity-10 rounded-lg">
+      <div className="font-semibold text-[rgb(120,151,178) mb-2">{teamName}</div>
       <div className="space-y-2">
         {team.map((player, idx) => (
           <div key={idx} className="flex items-center justify-between">
@@ -362,7 +362,7 @@ const PadelPlanner = () => {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">Padelbaan Planner</h1>
+          <h1 className="text-3xl font-bold text-[rgb(120,151,178)]">Padelbaan Planner</h1>
           <p className="text-gray-600 mt-2">
             Woensdagen 18:30-20:00 • 2 vs 2 wedstrijden • {totalWeeks} weken totaal
           </p>

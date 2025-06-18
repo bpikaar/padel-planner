@@ -65,7 +65,7 @@ const PlanningView = ({
             <div className="bg-white p-4 rounded-lg shadow">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center">
-                        <Users size={20} className="mr-2 text-blue-800" />
+                        <Users size={20} className="mr-2 text-[rgb(120,151,178)" />
                         <h3 className="text-lg font-semibold">Beschikbare spelers</h3>
                     </div>
                     <button
