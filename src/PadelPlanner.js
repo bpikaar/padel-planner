@@ -23,6 +23,7 @@ const PadelPlanner = () => {
   const [tempResult, setTempResult] = useState({ team1Score: '', team2Score: '' });
   const [view, setView] = useState('availability');
   const [loading, setLoading] = useState(true);
+  const [guestPlayerPool, setGuestPlayerPool] = useState([]); // Guest player pool state
 
   // Load data from Firebase on mount
   useEffect(() => {
@@ -137,19 +138,45 @@ const PadelPlanner = () => {
     return newArray;
   };
 
+  // Function to add a guest player to the available pool for team creation
+  const addGuestToPool = (guestName) => {
+    // Check if already in the pool
+    if (guestPlayerPool.includes(guestName)) {
+      alert(`${guestName} is al toegevoegd als gastspeler`);
+      return;
+    }
+
+    setGuestPlayerPool(prev => [...prev, guestName]);
+  };
+
+  // Function to remove a guest from the pool
+  const removeGuestFromPool = (index) => {
+    setGuestPlayerPool(prev => prev.filter((_, i) => i !== index));
+  };
+
   const createTeamsForWeek = (week) => {
     // Get all fully available players for this week
     const availablePlayers = getAvailableFriends(week);
 
-    if (availablePlayers.length < 4) {
+    // Combine with guest players
+    const allPlayers = [...availablePlayers, ...guestPlayerPool];
+
+    if (allPlayers.length < 4) {
       alert('Er zijn niet genoeg beschikbare spelers voor deze week');
       return;
     }
 
-    // Create teams by selecting players with the least matches
+    // Create teams, but handle guest players differently since they don't have match history
     const playerCounts = {};
+
+    // Initialize regular friends with their counts
     friends.forEach(friend => {
       playerCounts[friend] = 0;
+    });
+
+    // Initialize guest players with 0 matches
+    guestPlayerPool.forEach(guest => {
+      playerCounts[guest] = 0; // Guests start with 0 matches
     });
 
     // Count existing matches for each player
@@ -162,7 +189,7 @@ const PadelPlanner = () => {
     });
 
     // Sort available players by match count (ascending)
-    const sortedPlayers = [...availablePlayers].sort((a, b) => {
+    const sortedPlayers = [...allPlayers].sort((a, b) => {
       return playerCounts[a] - playerCounts[b];
     });
 
@@ -181,12 +208,8 @@ const PadelPlanner = () => {
       [week]: newMatch
     }));
 
-    // Clear any existing result for this week
-    setResults(prev => {
-      const newResults = { ...prev };
-      delete newResults[week];
-      return newResults;
-    });
+    // Clear the guest player pool after creating teams
+    setGuestPlayerPool([]);
   };
 
   const movePlayerToTeam = (week, player, fromTeam, toTeam) => {
@@ -328,32 +351,99 @@ const PadelPlanner = () => {
     setView(newView);
   };
 
+  // Add this function to your PadelPlanner component
+  const addCustomPlayer = (week, teamId, playerName) => {
+    // First check if the player already exists in either team for this week
+    const currentMatch = matches[week] || { team1: [], team2: [] };
+    const team1 = currentMatch.team1 || [];
+    const team2 = currentMatch.team2 || [];
+
+    if (team1.includes(playerName) || team2.includes(playerName)) {
+      alert(`${playerName} is al toegevoegd aan deze wedstrijd`);
+      return;
+    }
+
+    // Add the custom player to the specified team
+    const updatedMatch = {
+      ...currentMatch,
+      [teamId]: [...(currentMatch[teamId] || []), playerName]
+    };
+
+    // Update the matches state
+    setMatches(prev => ({
+      ...prev,
+      [week]: updatedMatch
+    }));
+  };
+
+  const removePlayerFromMatch = (week, teamId, playerIndex) => {
+    setMatches(prev => {
+      const updatedMatch = { ...prev[week] };
+      const updatedTeam = [...updatedMatch[teamId]];
+      updatedTeam.splice(playerIndex, 1);
+      updatedMatch[teamId] = updatedTeam;
+
+      return {
+        ...prev,
+        [week]: updatedMatch
+      };
+    });
+  };
+
   // Render functions
   const renderTeam = (team, teamName, week, teamId) => (
     <div className="p-3 bg-[rgb(120,151,178)] bg-opacity-10 rounded-lg">
-      <div className="font-semibold text-[rgb(120,151,178) mb-2">{teamName}</div>
+      <div className="font-semibold text-[rgb(120,151,178)] mb-2">{teamName}</div>
       <div className="space-y-2">
-        {team.map((player, idx) => (
-          <div key={idx} className="flex items-center justify-between">
-            <select
-              className="text-sm border rounded px-2 py-1"
-              value={player}
-              onChange={e => handlePlayerChange(week, teamId, idx, e.target.value)}
-            >
-              <option value="">Kies speler</option>
-              {friends
-                .filter(f =>
-                  // Only show players not already selected in either team for this match
-                  !matches[week].team1.includes(f) &&
-                  !matches[week].team2.includes(f) ||
-                  f === player
-                )
-                .map(f => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-            </select>
+        {team.map((player, idx) => {
+          // Check if player is in the original friends list
+          const isCustomPlayer = !friends.includes(player);
+
+          return (
+            <div key={idx} className="flex items-center justify-between">
+              {isCustomPlayer ? (
+                // Custom player display
+                <div className="flex items-center space-x-1 px-2 py-1 bg-yellow-50 border border-yellow-300 rounded w-full">
+                  <span className="text-sm">{player}</span>
+                  <span className="ml-auto text-xs bg-yellow-200 text-yellow-800 px-1 rounded">
+                    Gast
+                  </span>
+                  <button
+                    onClick={() => removePlayerFromMatch(week, teamId, idx)}
+                    className="text-red-500 hover:text-red-700 text-sm ml-2"
+                  >
+                  </button>
+                </div>
+              ) : (
+                // Regular player dropdown
+                <select
+                  className="text-sm border rounded px-2 py-1 w-full"
+                  value={player}
+                  onChange={e => handlePlayerChange(week, teamId, idx, e.target.value)}
+                >
+                  <option value="">Kies speler</option>
+                  {friends
+                    .filter(f =>
+                      // Only show players not already selected in either team for this match
+                      !matches[week]?.team1.includes(f) &&
+                      !matches[week]?.team2.includes(f) ||
+                      f === player
+                    )
+                    .map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                </select>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Add empty slot if team has less than 2 players */}
+        {team.length < 2 && (
+          <div className="text-sm border border-dashed border-gray-300 rounded px-2 py-1 text-gray-400 text-center">
+            Voeg speler toe
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -399,6 +489,10 @@ const PadelPlanner = () => {
             getAvailableFriends={getAvailableFriends}
             createTeamsForWeek={createTeamsForWeek}
             friends={friends}
+            addCustomPlayer={addCustomPlayer}
+            guestPlayers={guestPlayerPool}
+            addGuestToPool={addGuestToPool}
+            removeGuestFromPool={removeGuestFromPool}
           />
         )}
         {view === 'stats' && (
