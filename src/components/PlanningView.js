@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Edit2, Save, X, Users, RefreshCw, Calendar, UserPlus } from 'lucide-react';
 
 const PlanningView = ({
@@ -20,9 +20,12 @@ const PlanningView = ({
     friends,
     guestPlayers,
     addGuestToPool,
-    removeGuestFromPool
+    removeGuestFromPool,
+    startDate,
+    getActualCurrentWeek // Use the function passed from parent
 }) => {
     const [newGuestName, setNewGuestName] = useState('');
+    const hasInitialized = useRef(false);
 
     // Navigate to previous/next week
     const goToPrevWeek = () => {
@@ -41,22 +44,21 @@ const PlanningView = ({
     const resultForCurrentWeek = results[currentWeek];
     const availableFriends = getAvailableFriends(currentWeek);
 
-    // Get today's date to determine current week
-    const today = new Date();
-    const startDateObj = new Date('2025-05-21'); // Make sure this matches your startDate in PadelPlanner
-
-    // Calculate which week we're currently in
-    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-    const weeksSinceStart = Math.floor((today - startDateObj) / msPerWeek);
-    const actualCurrentWeek = Math.min(Math.max(1, weeksSinceStart + 1), totalWeeks);
+    // Use the function passed from parent instead of calculating here
+    const actualCurrentWeek = getActualCurrentWeek();
 
     // Check if we're viewing the current week
     const isCurrentWeek = currentWeek === actualCurrentWeek;
 
-    // Auto-navigate to current week when component mounts
+    // Auto-navigate to current week ONLY when component first mounts
     useEffect(() => {
-        setCurrentWeek(actualCurrentWeek);
-    }, []); // Empty dependency array means this runs once on mount
+        if (!hasInitialized.current && currentWeek !== actualCurrentWeek) {
+            setCurrentWeek(actualCurrentWeek);
+            hasInitialized.current = true;
+        } else if (!hasInitialized.current) {
+            hasInitialized.current = true;
+        }
+    }, [actualCurrentWeek, currentWeek, setCurrentWeek]);
 
     // Handler for adding a guest to the available players pool
     const handleAddGuest = () => {
@@ -68,17 +70,18 @@ const PlanningView = ({
     return (
         <div className="mt-4 space-y-6">
             {/* Week navigation with current week indicator */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                 <button
                     onClick={goToPrevWeek}
                     disabled={currentWeek <= 1}
-                    className={`px-3 py-1 rounded ${currentWeek <= 1 ? 'bg-gray-200 text-gray-500' : 'bg-[rgb(120,151,178)] text-white'}`}
+                    className={`w-full sm:w-auto px-3 py-2 rounded text-sm sm:text-base ${currentWeek <= 1 ? 'bg-gray-200 text-gray-500' : 'bg-[rgb(120,151,178)] text-white'}`}
+                    aria-label="Vorige week"
                 >
                     Vorige week
                 </button>
                 <div className="text-center">
-                    <h2 className="text-xl font-bold">Week {currentWeek}</h2>
-                    <p className="text-sm text-gray-500">{getWeekDate(currentWeek)}</p>
+                    <h2 className="text-lg sm:text-xl font-bold">Week {currentWeek}</h2>
+                    <p className="text-xs sm:text-sm text-gray-500">{getWeekDate(currentWeek)}</p>
                     {isCurrentWeek && (
                         <span className="inline-flex items-center px-2.5 py-0.5 mt-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             <Calendar size={12} className="mr-1" />
@@ -89,7 +92,8 @@ const PlanningView = ({
                 <button
                     onClick={goToNextWeek}
                     disabled={currentWeek >= totalWeeks}
-                    className={`px-3 py-1 rounded ${currentWeek >= totalWeeks ? 'bg-gray-200 text-gray-500' : 'bg-[rgb(120,151,178)] text-white'}`}
+                    className={`w-full sm:w-auto px-3 py-2 rounded text-sm sm:text-base ${currentWeek >= totalWeeks ? 'bg-gray-200 text-gray-500' : 'bg-[rgb(120,151,178)] text-white'}`}
+                    aria-label="Volgende week"
                 >
                     Volgende week
                 </button>
@@ -100,7 +104,7 @@ const PlanningView = ({
                 <div className="flex justify-center">
                     <button
                         onClick={() => setCurrentWeek(actualCurrentWeek)}
-                        className="flex items-center px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm"
+                        className="flex items-center px-3 py-2 bg-green-100 text-green-800 rounded-full text-sm"
                     >
                         <Calendar size={14} className="mr-1.5" />
                         Ga naar huidige week
@@ -108,16 +112,17 @@ const PlanningView = ({
                 </div>
             )}
 
+            {/* Rest of the component remains the same */}
             {/* Availability for current week */}
             <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                     <div className="flex items-center">
                         <Users size={20} className="mr-2 text-[rgb(120,151,178)]" />
-                        <h3 className="text-lg font-semibold">Beschikbare spelers</h3>
+                        <h3 className="text-base sm:text-lg font-semibold">Beschikbare spelers</h3>
                     </div>
                     <button
                         onClick={() => createTeamsForWeek(currentWeek)}
-                        className="flex items-center bg-green-600 text-white px-3 py-1.5 rounded"
+                        className="w-full sm:w-auto flex items-center justify-center bg-green-600 text-white px-3 py-2 rounded text-sm"
                     >
                         <RefreshCw size={16} className="mr-1.5" />
                         <span>Teams maken</span>
@@ -126,9 +131,16 @@ const PlanningView = ({
 
                 {/* Regular players */}
                 {availableFriends.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div
+                        className="flex flex-wrap gap-2"
+                        aria-label="Beschikbare spelers lijst"
+                    >
                         {availableFriends.map(friend => (
-                            <span key={friend} className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
+                            <span
+                                key={friend}
+                                className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm md:text-base leading-tight whitespace-normal"
+                                title={friend}
+                            >
                                 {friend}
                             </span>
                         ))}
@@ -145,18 +157,19 @@ const PlanningView = ({
                     </div>
 
                     {/* Input for adding guests */}
-                    <div className="flex mb-2">
+                    <div className="flex flex-col sm:flex-row mb-2 gap-2">
                         <input
                             type="text"
                             value={newGuestName}
                             onChange={(e) => setNewGuestName(e.target.value)}
                             placeholder="Naam gastspeler"
-                            className="flex-grow border rounded-l px-3 py-1.5 text-sm"
+                            className="w-full border rounded px-3 py-2 text-sm"
+                            aria-label="Naam gastspeler"
                         />
                         <button
                             onClick={handleAddGuest}
                             disabled={newGuestName.trim() === ''}
-                            className="bg-[rgb(120,151,178)] text-white px-3 py-1.5 rounded-r text-sm"
+                            className="w-full sm:w-auto bg-[rgb(120,151,178)] text-white px-3 py-2 rounded text-sm disabled:opacity-60"
                         >
                             Toevoegen
                         </button>
@@ -166,14 +179,15 @@ const PlanningView = ({
                     {guestPlayers.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                             {guestPlayers.map((guest, index) => (
-                                <div key={index} className="inline-flex items-center bg-yellow-100 px-2 py-1 rounded-full text-sm">
-                                    <span className="text-yellow-800">{guest}</span>
+                                <div key={index} className="inline-flex items-center bg-yellow-100 px-2 py-1 rounded-full text-sm md:text-base leading-tight">
+                                    <span className="text-yellow-800" title={guest}>{guest}</span>
                                     <span className="mx-1 text-xs bg-yellow-200 text-yellow-800 px-1 rounded">
                                         Gast
                                     </span>
                                     <button
                                         onClick={() => removeGuestFromPool(index)}
                                         className="ml-1 text-yellow-800 hover:text-yellow-900"
+                                        aria-label={`Verwijder gastspeler ${guest}`}
                                     >
                                         <X size={14} />
                                     </button>
@@ -203,13 +217,13 @@ const PlanningView = ({
             <div className="bg-white p-4 rounded-lg shadow">
                 <h3 className="text-lg font-semibold mb-3">Uitslag</h3>
                 {editingResult === currentWeek ? (
-                    <div className="flex items-center space-x-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 gap-3">
                         <div className="flex items-center space-x-2">
                             <span>Team 1:</span>
                             <input
                                 type="number"
                                 min="0"
-                                className="border rounded p-1 w-16"
+                                className="border rounded p-2 w-20"
                                 value={tempResult.team1Score}
                                 onChange={e => setTempResult({ ...tempResult, team1Score: e.target.value })}
                             />
@@ -219,21 +233,21 @@ const PlanningView = ({
                             <input
                                 type="number"
                                 min="0"
-                                className="border rounded p-1 w-16"
+                                className="border rounded p-2 w-20"
                                 value={tempResult.team2Score}
                                 onChange={e => setTempResult({ ...tempResult, team2Score: e.target.value })}
                             />
                         </div>
-                        <div className="flex space-x-2">
+                        <div className="flex flex-row gap-2">
                             <button
-                                className="flex items-center bg-green-600 text-white px-2 py-1 rounded"
+                                className="flex items-center bg-green-600 text-white px-3 py-2 rounded"
                                 onClick={() => saveResult(currentWeek)}
                             >
                                 <Save size={16} className="mr-1" />
                                 <span>Opslaan</span>
                             </button>
                             <button
-                                className="flex items-center bg-gray-400 text-white px-2 py-1 rounded"
+                                className="flex items-center bg-gray-400 text-white px-3 py-2 rounded"
                                 onClick={cancelEditingResult}
                             >
                                 <X size={16} className="mr-1" />
@@ -249,7 +263,7 @@ const PlanningView = ({
                             <span className="font-semibold">Team 2: {resultForCurrentWeek.team2Score}</span>
                         </div>
                         <button
-                            className="flex items-center bg-blue-600 text-white px-2 py-1 rounded"
+                            className="flex items-center bg-blue-600 text-white px-3 py-2 rounded"
                             onClick={() => startEditingResult(currentWeek)}
                         >
                             <Edit2 size={16} className="mr-1" />
@@ -257,10 +271,10 @@ const PlanningView = ({
                         </button>
                     </div>
                 ) : (
-                    <div className="flex items-center">
-                        <span className="text-gray-500 mr-4">Nog geen uitslag</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span className="text-gray-500 mr-0 sm:mr-4">Nog geen uitslag</span>
                         <button
-                            className="flex items-center bg-blue-600 text-white px-2 py-1 rounded"
+                            className="flex items-center bg-blue-600 text-white px-3 py-2 rounded"
                             onClick={() => startEditingResult(currentWeek)}
                         >
                             <Edit2 size={16} className="mr-1" />

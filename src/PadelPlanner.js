@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { db } from './firebase';
-import { ref, set, get, onValue, off } from "firebase/database";
+import { ref, set, onValue, off } from "firebase/database";
 import StatsView from './components/StatsView';
 import AvailabilityView from './components/AvailabilityView';
 import HistoryView from './components/HistoryView';
@@ -13,9 +13,16 @@ const PadelPlanner = () => {
   const totalWeeks = 19;
   const startDate = new Date('2025-05-21'); // First match is now May 21st, 2025
 
-  // State
-  const [currentWeek, setCurrentWeek] = useState(1);
-  // We're moving this state to CalendarView
+  // Calculate actual current week
+  const getActualCurrentWeek = () => {
+    const today = new Date();
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const weeksSinceStart = Math.floor((today - startDate) / msPerWeek);
+    return Math.min(Math.max(1, weeksSinceStart + 1), totalWeeks);
+  };
+
+  // State - initialize with actual current week
+  const [currentWeek, setCurrentWeek] = useState(() => getActualCurrentWeek());
   const [availability, setAvailability] = useState({});
   const [matches, setMatches] = useState({});
   const [results, setResults] = useState({});
@@ -68,6 +75,14 @@ const PadelPlanner = () => {
       off(resultsRef);
       off(matchesRef);
     };
+  }, []);
+
+  // Remove the useEffect that was forcing currentWeek to actualCurrentWeek
+  // This was causing the arrows to not work
+
+  // Wrap setCurrentWeek in useCallback to prevent unnecessary re-renders
+  const handleSetCurrentWeek = useCallback((week) => {
+    setCurrentWeek(week);
   }, []);
 
   // Save results to Firebase when they change
@@ -127,15 +142,6 @@ const PadelPlanner = () => {
       if (!team1Won && match.team2?.includes(friend)) wins++;
     });
     return wins;
-  };
-
-  const shuffleArray = (array) => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
   };
 
   // Function to add a guest player to the available pool for team creation
@@ -210,72 +216,6 @@ const PadelPlanner = () => {
 
     // Clear the guest player pool after creating teams
     setGuestPlayerPool([]);
-  };
-
-  const movePlayerToTeam = (week, player, fromTeam, toTeam) => {
-    setMatches(prev => {
-      const match = prev[week];
-      if (!match) return prev;
-
-      const newMatch = { ...match };
-
-      // Remove player from current team
-      if (fromTeam === 'team1') {
-        newMatch.team1 = newMatch.team1.filter(p => p !== player);
-      } else {
-        newMatch.team2 = newMatch.team2.filter(p => p !== player);
-      }
-
-      // Add player to new team (if there's space)
-      if (toTeam === 'team1' && newMatch.team1.length < 2) {
-        newMatch.team1 = [...newMatch.team1, player];
-      } else if (toTeam === 'team2' && newMatch.team2.length < 2) {
-        newMatch.team2 = [...newMatch.team2, player];
-      } else {
-        // No space, return original
-        return prev;
-      }
-
-      return { ...prev, [week]: newMatch };
-    });
-
-    // Clear any existing result for this week since teams changed
-    setResults(prev => {
-      const newResults = { ...prev };
-      delete newResults[week];
-      return newResults;
-    });
-  };
-
-  const swapPlayers = (week, player1, team1, player2, team2) => {
-    setMatches(prev => {
-      const match = prev[week];
-      if (!match) return prev;
-
-      const newMatch = { ...match };
-
-      // Remove both players from their teams
-      newMatch.team1 = newMatch.team1.filter(p => p !== player1 && p !== player2);
-      newMatch.team2 = newMatch.team2.filter(p => p !== player1 && p !== player2);
-
-      // Add player1 to team2's original team and player2 to team1's original team
-      if (team1 === 'team1') {
-        newMatch.team2 = [...newMatch.team2, player1];
-        newMatch.team1 = [...newMatch.team1, player2];
-      } else {
-        newMatch.team1 = [...newMatch.team1, player1];
-        newMatch.team2 = [...newMatch.team2, player2];
-      }
-
-      return { ...prev, [week]: newMatch };
-    });
-
-    // Clear any existing result for this week since teams changed
-    setResults(prev => {
-      const newResults = { ...prev };
-      delete newResults[week];
-      return newResults;
-    });
   };
 
   const saveResult = (week) => {
@@ -426,8 +366,8 @@ const PadelPlanner = () => {
                     .filter(f =>
                       // Only show players not already selected in either team for this match
                       !matches[week]?.team1.includes(f) &&
-                      !matches[week]?.team2.includes(f) ||
-                      f === player
+                        (!matches[week]?.team2.includes(f) ||
+                      f === player)
                     )
                     .map(f => (
                       <option key={f} value={f}>{f}</option>
@@ -467,7 +407,9 @@ const PadelPlanner = () => {
             friends={friends}
             getWeekDate={getWeekDate}
             totalWeeks={totalWeeks}
-            onAvailabilityChange={handleAvailabilityChange} // Pass callback for updates
+            onAvailabilityChange={handleAvailabilityChange}
+            currentWeek={currentWeek}
+            setCurrentWeek={handleSetCurrentWeek}
           />
         )}
         {view === 'planning' && (
@@ -484,7 +426,7 @@ const PadelPlanner = () => {
             startEditingResult={startEditingResult}
             cancelEditingResult={cancelEditingResult}
             saveResult={saveResult}
-            setCurrentWeek={setCurrentWeek}
+            setCurrentWeek={handleSetCurrentWeek}
             availability={availability}
             getAvailableFriends={getAvailableFriends}
             createTeamsForWeek={createTeamsForWeek}
@@ -493,6 +435,8 @@ const PadelPlanner = () => {
             guestPlayers={guestPlayerPool}
             addGuestToPool={addGuestToPool}
             removeGuestFromPool={removeGuestFromPool}
+            startDate={startDate}
+            getActualCurrentWeek={getActualCurrentWeek} // Pass the function to calculate current week
           />
         )}
         {view === 'stats' && (
