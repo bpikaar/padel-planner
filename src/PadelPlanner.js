@@ -175,20 +175,15 @@ const PadelPlanner = () => {
     // Create teams, but handle guest players differently since they don't have match history
     const playerCounts = {};
 
-    // Initialize regular friends with their counts
-    friends.forEach(friend => {
-      playerCounts[friend] = 0;
-    });
-
-    // Initialize guest players with 0 matches
-    guestPlayerPool.forEach(guest => {
-      playerCounts[guest] = 0; // Guests start with 0 matches
+    // Initialize ALL players (both friends and guests) with their counts
+    allPlayers.forEach(player => {
+      playerCounts[player] = 0;
     });
 
     // Count existing matches for each player
     Object.values(matches).forEach(match => {
-      [...match.team1, ...match.team2].forEach(player => {
-        if (player && playerCounts[player] !== undefined) {
+      [...(match.team1 || []), ...(match.team2 || [])].forEach(player => {
+        if (player && playerCounts.hasOwnProperty(player)) {
           playerCounts[player]++;
         }
       });
