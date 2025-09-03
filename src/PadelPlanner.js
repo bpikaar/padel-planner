@@ -357,16 +357,19 @@ const PadelPlanner = () => {
                   onChange={e => handlePlayerChange(week, teamId, idx, e.target.value)}
                 >
                   <option value="">Kies speler</option>
-                  {friends
-                    .filter(f =>
-                      // Only show players not already selected in either team for this match
-                      !matches[week]?.team1.includes(f) &&
-                        (!matches[week]?.team2.includes(f) ||
-                      f === player)
-                    )
-                    .map(f => (
-                      <option key={f} value={f}>{f}</option>
-                    ))}
+                  {(() => {
+                    // normalize helper to avoid whitespace mismatch
+                    const norm = s => (s || '').toString().trim();
+                    const t1 = (matches[week]?.team1 || []).map(norm);
+                    const t2 = (matches[week]?.team2 || []).map(norm);
+                    return friends
+                      .filter(f => {
+                        const nf = norm(f);
+                        // keep option if not selected in other team(s) OR it's the currently selected value
+                        return (!t1.includes(nf) && !t2.includes(nf)) || norm(player) === nf;
+                      })
+                      .map(f => <option key={f} value={f}>{f}</option>);
+                  })()}
                 </select>
               )}
             </div>
