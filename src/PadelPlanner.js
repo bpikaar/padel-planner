@@ -10,8 +10,8 @@ import NavigationBar from './components/NavigationBar';
 const PadelPlanner = () => {
   // Initial data
   const friends = ['Erik', 'Bob', 'Robert E', 'Robert ', 'Wouter', 'Benno'];
-  const totalWeeks = 19;
-  const startDate = new Date('2025-05-21'); // First match is now May 21st, 2025
+  const totalWeeks = 26;
+  const startDate = new Date('2025-10-01'); // First match is now May 21st, 2025
 
   // Calculate actual current week
   const getActualCurrentWeek = () => {
