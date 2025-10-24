@@ -11,14 +11,15 @@ const PadelPlanner = () => {
   // Initial data
   const friends = ['Erik', 'Bob', 'Robert E', 'Robert ', 'Wouter', 'Benno'];
   const totalWeeks = 26;
-  const startDate = new Date('2025-10-01'); // First match is now May 21st, 2025
+  const startDate = new Date('2025-10-01');
 
   // Calculate actual current week
   const getActualCurrentWeek = () => {
     const today = new Date();
     const msPerWeek = 7 * 24 * 60 * 60 * 1000;
     const weeksSinceStart = Math.floor((today - startDate) / msPerWeek);
-    return Math.min(Math.max(1, weeksSinceStart + 1), totalWeeks);
+    // Don't show the current week, but next week (so +2)
+    return Math.min(Math.max(1, weeksSinceStart + 2), totalWeeks);
   };
 
   // State - initialize with actual current week
