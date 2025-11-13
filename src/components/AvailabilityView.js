@@ -84,37 +84,47 @@ function AvailabilityView({
         return friends.filter(friend => availability[week]?.[friend] === 2);
     };
 
+    // Count how many times a friend has been available up to the selected week
+    const getAvailabilityCountUntilCurrentWeek = (friend) => {
+        if (!currentWeek) return 0;
+        let count = 0;
+        for (let week = 1; week <= currentWeek; week++) {
+            if (availability[week]?.[friend] === 2) {
+                count++;
+            }
+        }
+        return count;
+    };
+
     // Render the cell with appropriate styling for each availability state
     const renderAvailabilityCell = (week, friend, isLarge = false) => {
         const status = availability[week]?.[friend] || 0;
 
-        // Configure styles and content based on status
         let cellClass, cellText, cellColor;
-
         switch (status) {
-            case 1: // Maybe
+            case 1:
                 cellClass = "bg-yellow-400 text-white";
                 cellText = "?";
                 cellColor = "yellow";
                 break;
-            case 2: // Available
+            case 2:
                 cellClass = "bg-green-500 text-white";
                 cellText = "✓";
                 cellColor = "green";
                 break;
-            default: // Unavailable (0)
+            default:
                 cellClass = "bg-red-500 text-white";
                 cellText = "✕";
                 cellColor = "red";
                 break;
         }
 
-        const sizeClass = isLarge ? "w-10 h-10 text-lg" : "w-8 h-8 text-sm";
+        const sizeClass = isLarge ? "w-12 h-12 text-lg" : "w-8 h-8 text-sm";
 
         return (
             <button
                 onClick={() => cycleAvailability(week, friend)}
-                className={`${sizeClass} rounded-full ${cellClass} font-semibold transition-all duration-200 hover:scale-110 active:scale-95`}
+                className={`${sizeClass} rounded-full ${cellClass} font-semibold transition-all duration-200 hover:scale-110 active:scale-95 flex items-center justify-center`}
                 aria-label={`Set availability for ${friend} on week ${week}`}
                 data-color={cellColor}
             >
@@ -149,7 +159,7 @@ function AvailabilityView({
                 >
                     <ChevronLeft size={20} />
                 </button>
-                
+
                 <div className="text-center">
                     <h3 className="text-lg sm:text-xl font-bold">Week {currentWeek}</h3>
                     <p className="text-sm text-gray-500">{getWeekDate(currentWeek)}</p>
@@ -157,7 +167,7 @@ function AvailabilityView({
                         {getAvailableFriends(currentWeek).length} spelers beschikbaar
                     </div>
                 </div>
-                
+
                 <button
                     onClick={goToNextWeek}
                     disabled={currentWeek >= totalWeeks || !setCurrentWeek}
@@ -170,23 +180,30 @@ function AvailabilityView({
 
             {/* Players grid for current week */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {friends.map((friend) => (
-                    <div key={friend} className="bg-white p-4 rounded-lg shadow">
-                        <div className="flex items-center justify-between">
-                            <div className="min-w-0 flex-1">
-                                <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate" title={friend}>
-                                    {friend}
-                                </h4>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Klik om status te wijzigen
-                                </p>
-                            </div>
-                            <div className="ml-3 flex-shrink-0">
-                                {renderAvailabilityCell(currentWeek, friend, true)}
+                {friends.map((friend) => {
+                    const availableCount = getAvailabilityCountUntilCurrentWeek(friend);
+                    return (
+                        <div key={friend} className="bg-white p-4 rounded-lg shadow">
+                            <div className="flex items-center justify-between">
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate" title={friend}>
+                                        {friend}
+                                    </h4>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Klik om status te wijzigen
+                                    </p>
+                                </div>
+                                <div className="ml-3 flex-shrink-0 flex items-center space-x-2">
+                                    <div className="w-12 h-12 rounded-full border-2 border-[rgb(120,151,178)] text-[rgb(120,151,178)] flex flex-col items-center justify-center leading-tight">
+                                        <span className="text-base font-semibold leading-none">{availableCount}</span>
+                                        <span className="text-[10px] font-medium">keer</span>
+                                    </div>
+                                    {renderAvailabilityCell(currentWeek, friend, true)}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Available players summary */}
@@ -259,26 +276,24 @@ function AvailabilityView({
                     <CalendarIcon size={24} className="mr-2" />
                     <h2 className="text-xl font-bold">Beschikbaarheid</h2>
                 </div>
-                
+
                 {/* View mode toggle */}
                 <div className="flex bg-gray-100 rounded-lg p-1">
                     <button
                         onClick={() => setViewMode('current')}
-                        className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                            viewMode === 'current'
-                                ? 'bg-white text-[rgb(120,151,178)] shadow'
-                                : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`px-4 py-2 text-sm rounded-md transition-colors ${viewMode === 'current'
+                            ? 'bg-white text-[rgb(120,151,178)] shadow'
+                            : 'text-gray-600 hover:text-gray-800'
+                            }`}
                     >
                         Huidige week
                     </button>
                     <button
                         onClick={() => setViewMode('all')}
-                        className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                            viewMode === 'all'
-                                ? 'bg-white text-[rgb(120,151,178)] shadow'
-                                : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                        className={`px-4 py-2 text-sm rounded-md transition-colors ${viewMode === 'all'
+                            ? 'bg-white text-[rgb(120,151,178)] shadow'
+                            : 'text-gray-600 hover:text-gray-800'
+                            }`}
                     >
                         Alle weken
                     </button>
