@@ -17,9 +17,10 @@ const PadelPlanner = () => {
   const getActualCurrentWeek = () => {
     const today = new Date();
     const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-    const weeksSinceStart = Math.floor((today - startDate) / msPerWeek);
-    // Don't show the current week, but next week (so +2)
-    return Math.min(Math.max(1, weeksSinceStart + 2), totalWeeks);
+    const weeksSinceStart = Math.floor((today.getTime() - startDate.getTime()) / msPerWeek);
+    const dayOfWeek = today.getDay(); // 0 = zondag ... 3 = woensdag
+    const offset = dayOfWeek >= 4 ? 2 : 1; // vanaf donderdag de volgende week tonen
+    return Math.min(Math.max(1, weeksSinceStart + offset), totalWeeks);
   };
 
   // State - initialize with actual current week
